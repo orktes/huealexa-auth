@@ -72,9 +72,6 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(200)
-
 		var authDetails struct {
 			AccessToken  string `json:"access_token"`
 			RefreshToken string `json:"refresh_token"`
