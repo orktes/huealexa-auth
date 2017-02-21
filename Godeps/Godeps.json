@@ -1,0 +1,6 @@
+{
+	"ImportPath": "github.com/orktes/huealexa-auth",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v78",
+	"Deps": []
+}
