@@ -106,7 +106,7 @@ func main() {
           </form>
         </body>
       </html>
-    `, target, target, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
+    `, target.Value, target.Value, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
 
 	})); err != nil {
 		panic(err)
