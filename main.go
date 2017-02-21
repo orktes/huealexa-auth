@@ -14,6 +14,36 @@ func main() {
 
 	// Start server
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.URL.Query().Get("uuid")
+		if uuid != "" {
+			sd := fmt.Sprintf(`
+    	{
+    		"alexa:all": {
+    			"productID": "%s",
+    			"productInstanceAttributes": {
+    				"deviceSerialNumber": "%s"
+    			}
+    		}
+    	}`, os.Getenv("PRODUCT_ID"), uuid)
+			u, err := url.Parse("https://www.amazon.com/ap/oa")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			q := u.Query()
+			q.Add("client_id", os.Getenv("CLIENT_ID"))
+			q.Add("scope", "alexa:all")
+			q.Add("scope_data", sd)
+			q.Add("response_type", "code")
+			q.Add("redirect_uri", fmt.Sprintf("https://%s%s", r.Host, r.RequestURI))
+
+			u.RawQuery = q.Encode()
+
+			w.Header().Add("Location", u.String())
+			w.WriteHeader(302)
+			return
+		}
+
 		code := r.URL.Query().Get("code")
 		form := url.Values{}
 
