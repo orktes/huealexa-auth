@@ -40,7 +40,7 @@ func main() {
 
 			u.RawQuery = q.Encode()
 
-			http.SetCookie(w, &http.Cookie{Name: "huealexa", Value: r.Referer(), Expires: time.Now().Add(time.Hour)})
+			http.SetCookie(w, &http.Cookie{Name: "huealexa", Value: r.URL.Query().Get("redirect"), Expires: time.Now().Add(time.Hour)})
 			w.Header().Add("Location", u.String())
 			w.WriteHeader(302)
 			return
