@@ -100,15 +100,16 @@ func main() {
         <title>HueAlexa Auth</title>
         </head>
         <body>
+          This will auth device located at: <b>%s</b><br/>
           <form target="%s">
             <input type="hidden" name="access_token" value="%s" />
             <input type="hidden" name="refresh_token" value="%s" />
             <input type="hidden" name="expires_in" value="%d" />
-            <input type="submit" value="Auth"/>
+            <input type="submit" value="OK!"/>
           </form>
         </body>
       </html>
-    `, target, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
+    `, target, target, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
 
 	})); err != nil {
 		panic(err)
