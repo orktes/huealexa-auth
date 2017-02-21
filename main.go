@@ -35,7 +35,7 @@ func main() {
 			q.Add("scope", "alexa:all")
 			q.Add("scope_data", sd)
 			q.Add("response_type", "code")
-			q.Add("redirect_uri", fmt.Sprintf("https://%s%s", r.Host, r.RequestURI))
+			q.Add("redirect_uri", fmt.Sprintf("https://%s", r.Host))
 
 			u.RawQuery = q.Encode()
 
@@ -51,7 +51,7 @@ func main() {
 		form.Add("client_secret", os.Getenv("CLIENT_SECRET"))
 		form.Add("code", code)
 		form.Add("grant_type", "authorization_code")
-		form.Add("redirect_uri", fmt.Sprintf("https://%s%s", r.Host, r.RequestURI))
+		form.Add("redirect_uri", fmt.Sprintf("https://%s", r.Host))
 
 		req, err := http.NewRequest("POST", "https://api.amazon.com/auth/o2/token", strings.NewReader(form.Encode()))
 		if err != nil {
