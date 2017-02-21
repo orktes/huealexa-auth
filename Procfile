@@ -1,1 +1,1 @@
-web: huealexaauth
+web: huealexa-auth

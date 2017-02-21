@@ -1,4 +1,4 @@
-package main // import "github.com/orktes/huealexaauth"
+package main
 
 import (
 	"fmt"
