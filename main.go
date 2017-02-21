@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -40,6 +41,7 @@ func main() {
 			u.RawQuery = q.Encode()
 
 			w.Header().Add("Location", u.String())
+			http.SetCookie(w, &http.Cookie{Name: "huealexa", Value: r.Referer(), Expires: time.Now().Add(time.Hour)})
 			w.WriteHeader(302)
 			return
 		}
@@ -86,6 +88,10 @@ func main() {
 			return
 		}
 
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "text/html")
+
+		target, _ := r.Cookie("huealexa")
 		w.Write([]byte(fmt.Sprintf(`
       <!DOCTYPE html>
       <html>
@@ -102,7 +108,7 @@ func main() {
           </form>
         </body>
       </html>
-    `, "", authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
+    `, target, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
 
 	})); err != nil {
 		panic(err)
