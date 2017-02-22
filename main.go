@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -15,6 +16,48 @@ func main() {
 
 	// Start server
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			var authDetails struct {
+				RefreshToken string `json:"refresh_token"`
+			}
+
+			err := json.NewDecoder(r.Body).Decode(&authDetails)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			form := url.Values{}
+
+			form.Add("client_id", os.Getenv("CLIENT_ID"))
+			form.Add("client_secret", os.Getenv("CLIENT_SECRET"))
+			form.Add("refresh_token", authDetails.RefreshToken)
+			form.Add("grant_type", "refresh_token")
+			form.Add("redirect_uri", fmt.Sprintf("https://%s", r.Host))
+
+			req, err := http.NewRequest("POST", "https://api.amazon.com/auth/o2/token", strings.NewReader(form.Encode()))
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			defer resp.Body.Close()
+
+			io.Copy(w, resp.Body)
+
+			return
+		}
+
 		uuid := r.URL.Query().Get("uuid")
 		if uuid != "" {
 			sd := fmt.Sprintf(`
@@ -47,67 +90,68 @@ func main() {
 		}
 
 		code := r.URL.Query().Get("code")
-		form := url.Values{}
+		if code != "" {
+			form := url.Values{}
 
-		form.Add("client_id", os.Getenv("CLIENT_ID"))
-		form.Add("client_secret", os.Getenv("CLIENT_SECRET"))
-		form.Add("code", code)
-		form.Add("grant_type", "authorization_code")
-		form.Add("redirect_uri", fmt.Sprintf("https://%s", r.Host))
+			form.Add("client_id", os.Getenv("CLIENT_ID"))
+			form.Add("client_secret", os.Getenv("CLIENT_SECRET"))
+			form.Add("code", code)
+			form.Add("grant_type", "authorization_code")
+			form.Add("redirect_uri", fmt.Sprintf("https://%s", r.Host))
 
-		req, err := http.NewRequest("POST", "https://api.amazon.com/auth/o2/token", strings.NewReader(form.Encode()))
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), 500)
-			return
+			req, err := http.NewRequest("POST", "https://api.amazon.com/auth/o2/token", strings.NewReader(form.Encode()))
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			defer resp.Body.Close()
+
+			var authDetails struct {
+				AccessToken  string `json:"access_token"`
+				RefreshToken string `json:"refresh_token"`
+				ExpiresIn    int    `json:"expires_in"`
+			}
+
+			err = json.NewDecoder(resp.Body).Decode(&authDetails)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+
+			w.WriteHeader(200)
+			w.Header().Set("Content-Type", "text/html")
+
+			target, _ := r.Cookie("huealexa")
+			w.Write([]byte(fmt.Sprintf(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+          <meta charset="UTF-8">
+          <title>HueAlexa Auth</title>
+          </head>
+          <body>
+            This will auth device located at: <b>%s</b><br/>
+            <form action="%s" method="post">
+              <input type="hidden" name="access_token" value="%s" />
+              <input type="hidden" name="refresh_token" value="%s" />
+              <input type="hidden" name="expires_in" value="%d" />
+              <input type="submit" value="OK!"/>
+            </form>
+          </body>
+        </html>`,
+				target.Value, target.Value, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
 		}
-
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		defer resp.Body.Close()
-
-		var authDetails struct {
-			AccessToken  string `json:"access_token"`
-			RefreshToken string `json:"refresh_token"`
-			ExpiresIn    int    `json:"expires_in"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&authDetails)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		w.WriteHeader(200)
-		w.Header().Set("Content-Type", "text/html")
-
-		target, _ := r.Cookie("huealexa")
-		w.Write([]byte(fmt.Sprintf(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-        <meta charset="UTF-8">
-        <title>HueAlexa Auth</title>
-        </head>
-        <body>
-          This will auth device located at: <b>%s</b><br/>
-          <form action="%s" method="post">
-            <input type="hidden" name="access_token" value="%s" />
-            <input type="hidden" name="refresh_token" value="%s" />
-            <input type="hidden" name="expires_in" value="%d" />
-            <input type="submit" value="OK!"/>
-          </form>
-        </body>
-      </html>
-    `, target.Value, target.Value, authDetails.AccessToken, authDetails.RefreshToken, authDetails.ExpiresIn)))
-
 	})); err != nil {
 		panic(err)
 	}
