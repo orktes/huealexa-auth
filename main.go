@@ -98,7 +98,7 @@ func main() {
         </head>
         <body>
           This will auth device located at: <b>%s</b><br/>
-          <form target="%s">
+          <form action="%s" method="post">
             <input type="hidden" name="access_token" value="%s" />
             <input type="hidden" name="refresh_token" value="%s" />
             <input type="hidden" name="expires_in" value="%d" />
